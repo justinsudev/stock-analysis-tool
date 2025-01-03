@@ -18,13 +18,12 @@ def analyze_single_stock():
         data = calculate_moving_average(data)
         data = calculate_volatility(data)
 
-        print(data.head())  # Display data preview
+        print(data.head()) 
         plot_stock_data(data, ticker)
     except Exception as e:
         print(f"Error: {e}")
 
 def compare_stocks_mode():
-    # Strip whitespace from tickers
     tickers = [ticker.strip() for ticker in input("Enter stock tickers separated by commas (e.g., AAPL,MSFT,TSLA): ").split(",")]
     start_date = input("Enter start date (YYYY-MM-DD): ")
     end_date = input("Enter end date (YYYY-MM-DD): ")
@@ -45,13 +44,11 @@ def forecast_mode():
     days_to_forecast = int(input("Enter number of days to forecast: "))
     degree = int(input("Enter polynomial degree (2-4, higher = more curve): "))
     
-    # Validate polynomial degree
-    degree = max(1, min(4, degree))  # Limit between 1 and 4
+    degree = max(1, min(4, degree))  
     
     try:
-        # Get historical data up to today
         end_date = datetime.now()
-        start_date = end_date - timedelta(days=365)  # Use 1 year of historical data
+        start_date = end_date - timedelta(days=365)  
         
         stock = yf.Ticker(ticker)
         data = stock.history(start=start_date, end=end_date)
