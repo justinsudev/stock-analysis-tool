@@ -36,13 +36,10 @@ def plot_forecast(data, forecast, future_dates, upper_bound=None, lower_bound=No
     """
     plt.figure(figsize=(12, 6))
     
-    # Plot historical data
     plt.plot(data.index, data['Close'], label='Historical', color='blue')
     
-    # Plot forecast
     plt.plot(future_dates, forecast, label='Forecast', color='red', linestyle='--')
     
-    # Plot confidence bands if available
     if upper_bound is not None and lower_bound is not None:
         plt.fill_between(future_dates, lower_bound, upper_bound, 
                         color='red', alpha=0.1, label='Confidence Interval')
@@ -54,7 +51,6 @@ def plot_forecast(data, forecast, future_dates, upper_bound=None, lower_bound=No
     plt.grid(True)
     plt.xticks(rotation=45)
     
-    # Add last known price and forecasted final price annotations
     last_known_price = data['Close'].iloc[-1]
     final_forecast_price = forecast[-1]
     
