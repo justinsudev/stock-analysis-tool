@@ -2,6 +2,9 @@
 
 A Python-based tool for analyzing stock market data, comparing multiple stocks, and forecasting future trends using machine learning techniques.
 
+## Note
+This project was originally programmed and hosted on Glitch (an online IDE). It has since been exported from Glitch and imported to Github.
+
 ## Features
 
 - **Single Stock Analysis**: Analyze individual stocks with moving averages and volatility metrics
