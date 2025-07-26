@@ -80,3 +80,51 @@ def forecast_trend(data, days_to_forecast, degree=2):
     lower_bound = forecast - confidence_interval
     
     return forecast, future_dates, upper_bound, lower_bound
+
+def calculate_rsi(data, window=14):
+    """
+    Calculate the Relative Strength Index (RSI) for the stock's closing price.
+    """
+    delta = data['Close'].diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
+    rs = gain / loss
+    data[f'RSI_{window}'] = 100 - (100 / (1 + rs))
+    return data
+
+def calculate_bollinger_bands(data, window=20, num_std=2):
+    """
+    Calculate Bollinger Bands for the stock's closing price.
+    """
+    rolling_mean = data['Close'].rolling(window=window).mean()
+    rolling_std = data['Close'].rolling(window=window).std()
+    data['Bollinger_Mid'] = rolling_mean
+    data['Bollinger_Upper'] = rolling_mean + (rolling_std * num_std)
+    data['Bollinger_Lower'] = rolling_mean - (rolling_std * num_std)
+    return data
+
+def generate_trade_signals(data, rsi_window=14, bb_window=20, bb_num_std=2):
+    """
+    Generate trade signals based on RSI and Bollinger Bands.
+    Returns a DataFrame with a new 'Signal' column: 'Buy', 'Sell', or 'Hold'.
+    """
+    data = calculate_rsi(data, window=rsi_window)
+    data = calculate_bollinger_bands(data, window=bb_window, num_std=bb_num_std)
+    signals = []
+    for idx, row in data.iterrows():
+        rsi = row.get(f'RSI_{rsi_window}', None)
+        close = row['Close']
+        upper = row.get('Bollinger_Upper', None)
+        lower = row.get('Bollinger_Lower', None)
+        signal = 'Hold'
+        if rsi is not None and rsi < 30:
+            signal = 'Buy'
+        elif rsi is not None and rsi > 70:
+            signal = 'Sell'
+        elif upper is not None and close > upper:
+            signal = 'Sell'
+        elif lower is not None and close < lower:
+            signal = 'Buy'
+        signals.append(signal)
+    data['Signal'] = signals
+    return data
