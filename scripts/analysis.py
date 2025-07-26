@@ -128,3 +128,83 @@ def generate_trade_signals(data, rsi_window=14, bb_window=20, bb_num_std=2):
         signals.append(signal)
     data['Signal'] = signals
     return data
+
+def backtest_signals(data, initial_capital=10000):
+    """
+    Backtest trade signals to evaluate accuracy and returns.
+    Returns a dictionary with performance metrics.
+    """
+    if 'Signal' not in data.columns:
+        data = generate_trade_signals(data)
+    
+    # Initialize tracking variables
+    position = 0  # 0 = no position, 1 = long position
+    capital = initial_capital
+    shares = 0
+    trades = []
+    equity_curve = []
+    
+    for idx, row in data.iterrows():
+        signal = row['Signal']
+        price = row['Close']
+        
+        # Execute trades based on signals
+        if signal == 'Buy' and position == 0:
+            # Buy signal when not in position
+            shares = capital / price
+            capital = 0
+            position = 1
+            trades.append({
+                'date': idx,
+                'action': 'Buy',
+                'price': price,
+                'shares': shares
+            })
+        elif signal == 'Sell' and position == 1:
+            # Sell signal when in position
+            capital = shares * price
+            shares = 0
+            position = 0
+            trades.append({
+                'date': idx,
+                'action': 'Sell',
+                'price': price,
+                'capital': capital
+            })
+        
+        # Calculate current equity
+        current_equity = capital + (shares * price)
+        equity_curve.append(current_equity)
+    
+    # Calculate final capital if still in position
+    if position == 1:
+        final_price = data['Close'].iloc[-1]
+        capital = shares * final_price
+    
+    # Calculate performance metrics
+    total_return = (capital - initial_capital) / initial_capital * 100
+    buy_trades = [t for t in trades if t['action'] == 'Buy']
+    sell_trades = [t for t in trades if t['action'] == 'Sell']
+    
+    # Calculate accuracy (profitable trades / total trades)
+    profitable_trades = 0
+    total_trades = min(len(buy_trades), len(sell_trades))
+    
+    for i in range(total_trades):
+        buy_price = buy_trades[i]['price']
+        sell_price = sell_trades[i]['price']
+        if sell_price > buy_price:
+            profitable_trades += 1
+    
+    accuracy = (profitable_trades / total_trades * 100) if total_trades > 0 else 0
+    
+    return {
+        'initial_capital': initial_capital,
+        'final_capital': capital,
+        'total_return_pct': total_return,
+        'total_trades': total_trades,
+        'profitable_trades': profitable_trades,
+        'accuracy_pct': accuracy,
+        'trades': trades,
+        'equity_curve': equity_curve
+    }
