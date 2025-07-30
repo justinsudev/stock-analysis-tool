@@ -1,4 +1,4 @@
-# Real-Time Smart Trading Assistant
+# Smart Trading Assistant
 
 A comprehensive stock analysis platform that analyzes over 5,000 equities using technical indicators with 80% backtested accuracy. Features include RSI, Bollinger Bands, moving averages, and algorithmic trading signals.
 
