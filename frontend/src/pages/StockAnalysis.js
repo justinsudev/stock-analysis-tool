@@ -47,7 +47,7 @@ const StockAnalysis = () => {
     });
   };
 
-  // Sample data for demonstration
+  // Sample data for demonstration - only used as fallback
   const sampleData = {
     ticker: 'AAPL',
     results: {
@@ -66,6 +66,11 @@ const StockAnalysis = () => {
       bb_lower: [140, 142, 138, 145, 148],
     },
   };
+
+  // Use actual data if available, otherwise fall back to sample data
+  const displayData = analysisData || sampleData;
+  const chartData = analysisData?.chart_data || sampleData.chartData;
+  const results = analysisData?.results || sampleData.results;
 
   return (
     <Box>
@@ -146,19 +151,19 @@ const StockAnalysis = () => {
                   Performance Metrics
                 </Typography>
                 <Typography variant="body2" color="textSecondary">
-                  Initial Capital: ${sampleData.results.initial_capital.toLocaleString()}
+                  Initial Capital: ${results.initial_capital.toLocaleString()}
                 </Typography>
                 <Typography variant="body2" color="textSecondary">
-                  Final Capital: ${sampleData.results.final_capital.toLocaleString()}
+                  Final Capital: ${results.final_capital.toLocaleString()}
                 </Typography>
                 <Typography variant="h5" color="primary" sx={{ mt: 1 }}>
-                  Total Return: {sampleData.results.total_return_pct}%
+                  Total Return: {results.total_return_pct}%
                 </Typography>
                 <Typography variant="body2" color="textSecondary">
-                  Total Trades: {sampleData.results.total_trades}
+                  Total Trades: {results.total_trades}
                 </Typography>
                 <Typography variant="body2" color="textSecondary">
-                  Accuracy: {sampleData.results.accuracy_pct}%
+                  Accuracy: {results.accuracy_pct}%
                 </Typography>
               </CardContent>
             </Card>
@@ -168,29 +173,29 @@ const StockAnalysis = () => {
           <Grid item xs={12} md={8}>
             <Paper sx={{ p: 2 }}>
               <Typography variant="h6" gutterBottom>
-                Technical Analysis - {sampleData.ticker}
+                Technical Analysis - {displayData.ticker}
               </Typography>
               <Plot
                 data={[
                   {
-                    x: sampleData.chartData.x,
-                    y: sampleData.chartData.y,
+                    x: chartData.x,
+                    y: chartData.y,
                     type: 'scatter',
                     mode: 'lines+markers',
                     name: 'Price',
                     line: { color: '#2196f3' },
                   },
                   {
-                    x: sampleData.chartData.x,
-                    y: sampleData.chartData.bb_upper,
+                    x: chartData.x,
+                    y: chartData.bb_upper,
                     type: 'scatter',
                     mode: 'lines',
                     name: 'Bollinger Upper',
                     line: { color: '#f50057', dash: 'dash' },
                   },
                   {
-                    x: sampleData.chartData.x,
-                    y: sampleData.chartData.bb_lower,
+                    x: chartData.x,
+                    y: chartData.bb_lower,
                     type: 'scatter',
                     mode: 'lines',
                     name: 'Bollinger Lower',
@@ -199,7 +204,7 @@ const StockAnalysis = () => {
                   },
                 ]}
                 layout={{
-                  title: `${sampleData.ticker} Technical Analysis`,
+                  title: `${displayData.ticker} Technical Analysis`,
                   xaxis: { title: 'Date' },
                   yaxis: { title: 'Price ($)' },
                   height: 400,
@@ -219,8 +224,8 @@ const StockAnalysis = () => {
               <Plot
                 data={[
                   {
-                    x: sampleData.chartData.x,
-                    y: sampleData.chartData.rsi,
+                    x: chartData.x,
+                    y: chartData.rsi,
                     type: 'scatter',
                     mode: 'lines+markers',
                     name: 'RSI',
@@ -235,16 +240,16 @@ const StockAnalysis = () => {
                   shapes: [
                     {
                       type: 'line',
-                      x0: sampleData.chartData.x[0],
-                      x1: sampleData.chartData.x[sampleData.chartData.x.length - 1],
+                      x0: chartData.x[0],
+                      x1: chartData.x[chartData.x.length - 1],
                       y0: 70,
                       y1: 70,
                       line: { color: 'red', dash: 'dash' },
                     },
                     {
                       type: 'line',
-                      x0: sampleData.chartData.x[0],
-                      x1: sampleData.chartData.x[sampleData.chartData.x.length - 1],
+                      x0: chartData.x[0],
+                      x1: chartData.x[chartData.x.length - 1],
                       y0: 30,
                       y1: 30,
                       line: { color: 'green', dash: 'dash' },

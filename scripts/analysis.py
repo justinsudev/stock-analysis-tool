@@ -108,24 +108,40 @@ def generate_trade_signals(data, rsi_window=14, bb_window=20, bb_num_std=2):
     Generate trade signals based on RSI and Bollinger Bands.
     Returns a DataFrame with a new 'Signal' column: 'Buy', 'Sell', or 'Hold'.
     """
+    if data.empty:
+        raise ValueError("Cannot generate signals for empty dataset")
+    
+    if 'Close' not in data.columns:
+        raise ValueError("Dataset must contain 'Close' column")
+    
     data = calculate_rsi(data, window=rsi_window)
     data = calculate_bollinger_bands(data, window=bb_window, num_std=bb_num_std)
     signals = []
+    
     for idx, row in data.iterrows():
         rsi = row.get(f'RSI_{rsi_window}', None)
         close = row['Close']
         upper = row.get('Bollinger_Upper', None)
         lower = row.get('Bollinger_Lower', None)
         signal = 'Hold'
-        if rsi is not None and rsi < 30:
-            signal = 'Buy'
-        elif rsi is not None and rsi > 70:
-            signal = 'Sell'
-        elif upper is not None and close > upper:
-            signal = 'Sell'
-        elif lower is not None and close < lower:
-            signal = 'Buy'
+        
+        # Only generate signals if we have valid data
+        if pd.notna(rsi) and pd.notna(upper) and pd.notna(lower):
+            if rsi < 30 and close < lower:
+                signal = 'Buy'  # Oversold and below lower band
+            elif rsi > 70 and close > upper:
+                signal = 'Sell'  # Overbought and above upper band
+            elif rsi < 30:
+                signal = 'Buy'  # Just oversold
+            elif rsi > 70:
+                signal = 'Sell'  # Just overbought
+            elif close < lower:
+                signal = 'Buy'  # Below lower band
+            elif close > upper:
+                signal = 'Sell'  # Above upper band
+                
         signals.append(signal)
+    
     data['Signal'] = signals
     return data
 
@@ -134,8 +150,18 @@ def backtest_signals(data, initial_capital=10000):
     Backtest trade signals to evaluate accuracy and returns.
     Returns a dictionary with performance metrics.
     """
+    if data.empty:
+        raise ValueError("Cannot backtest empty dataset")
+    
+    if 'Close' not in data.columns:
+        raise ValueError("Dataset must contain 'Close' column")
+    
     if 'Signal' not in data.columns:
         data = generate_trade_signals(data)
+    
+    # Validate initial capital
+    if initial_capital <= 0:
+        raise ValueError("Initial capital must be positive")
     
     # Initialize tracking variables
     position = 0  # 0 = no position, 1 = long position
@@ -148,9 +174,15 @@ def backtest_signals(data, initial_capital=10000):
         signal = row['Signal']
         price = row['Close']
         
+        # Validate price data
+        if pd.isna(price) or price <= 0:
+            current_equity = capital + (shares * data['Close'].iloc[-1] if shares > 0 else 0)
+            equity_curve.append(current_equity)
+            continue
+        
         # Execute trades based on signals
-        if signal == 'Buy' and position == 0:
-            # Buy signal when not in position
+        if signal == 'Buy' and position == 0 and capital > price:
+            # Buy signal when not in position and have enough capital
             shares = capital / price
             capital = 0
             position = 1
@@ -160,7 +192,7 @@ def backtest_signals(data, initial_capital=10000):
                 'price': price,
                 'shares': shares
             })
-        elif signal == 'Sell' and position == 1:
+        elif signal == 'Sell' and position == 1 and shares > 0:
             # Sell signal when in position
             capital = shares * price
             shares = 0
@@ -177,9 +209,10 @@ def backtest_signals(data, initial_capital=10000):
         equity_curve.append(current_equity)
     
     # Calculate final capital if still in position
-    if position == 1:
+    if position == 1 and shares > 0:
         final_price = data['Close'].iloc[-1]
-        capital = shares * final_price
+        if pd.notna(final_price) and final_price > 0:
+            capital = shares * final_price
     
     # Calculate performance metrics
     total_return = (capital - initial_capital) / initial_capital * 100

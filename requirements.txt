@@ -3,3 +3,7 @@ numpy
 matplotlib
 yfinance
 scikit-learn
+flask
+flask-cors
+plotly
+tabulate

@@ -177,7 +177,11 @@ def create_portfolio():
 def get_portfolio(portfolio_name):
     """Get portfolio data"""
     try:
-        filename = f"../data/{portfolio_name}_portfolio.json"
+        # Use absolute path relative to the project root
+        data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data'))
+        os.makedirs(data_dir, exist_ok=True)
+        filename = os.path.join(data_dir, f"{portfolio_name}_portfolio.json")
+        
         portfolio = Portfolio()
         portfolio.load_portfolio(filename)
         
@@ -213,7 +217,10 @@ def add_trade(portfolio_name):
     """Add a trade to a portfolio"""
     try:
         data = request.json
-        filename = f"../data/{portfolio_name}_portfolio.json"
+        # Use absolute path relative to the project root
+        data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data'))
+        os.makedirs(data_dir, exist_ok=True)
+        filename = os.path.join(data_dir, f"{portfolio_name}_portfolio.json")
         
         portfolio = Portfolio()
         portfolio.load_portfolio(filename)

@@ -149,8 +149,14 @@ class Portfolio:
         Save portfolio data to JSON file
         """
         if filename is None:
-            filename = f"data/{self.name}_portfolio.json"
+            # Create absolute path to data directory
+            project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+            data_dir = os.path.join(project_root, 'data')
+            filename = os.path.join(data_dir, f"{self.name}_portfolio.json")
             
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        
         data = {
             'name': self.name,
             'initial_capital': self.initial_capital,
@@ -159,7 +165,6 @@ class Portfolio:
             'trades': self.trades
         }
         
-        os.makedirs('data', exist_ok=True)
         with open(filename, 'w') as f:
             json.dump(data, f, indent=2, default=str)
             
@@ -195,15 +200,17 @@ def create_portfolio_from_signals(data, ticker, initial_capital=10000):
         price = row['Close']
         
         if signal == 'Buy' and position == 0:
-            # Buy signal when not in position
-            shares = initial_capital / price
-            portfolio.add_trade(ticker, 'buy', shares, price, idx)
-            position = 1
+            # Buy signal when not in position - use available cash
+            shares = portfolio.cash / price
+            if shares > 0:  # Only trade if we have enough cash
+                portfolio.add_trade(ticker, 'buy', shares, price, idx)
+                position = 1
             
         elif signal == 'Sell' and position == 1:
-            # Sell signal when in position
-            portfolio.add_trade(ticker, 'sell', shares, price, idx)
-            position = 0
-            shares = 0
+            # Sell signal when in position - sell all shares
+            if shares > 0:
+                portfolio.add_trade(ticker, 'sell', shares, price, idx)
+                position = 0
+                shares = 0
     
     return portfolio 

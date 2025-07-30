@@ -16,6 +16,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import Plot from 'react-plotly.js';
+import axios from 'axios';
 
 const BatchAnalysis = () => {
   const [analysisType, setAnalysisType] = useState('sp500');
@@ -26,11 +27,31 @@ const BatchAnalysis = () => {
   });
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
+  const [error, setError] = useState('');
 
   const handleAnalyze = async () => {
+    if (!dateRange.startDate || !dateRange.endDate) {
+      setError('Please select both start and end dates');
+      return;
+    }
+
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    setError('');
+    
+    try {
+      const response = await axios.post('/api/batch-analysis', {
+        analysisType,
+        customTickers,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+      });
+      
+      setResults(response.data);
+    } catch (err) {
+      setError('Failed to perform batch analysis. Please try again.');
+      console.error('Batch analysis error:', err);
+      
+      // Fallback to sample data if API fails
       setResults({
         totalStocks: 500,
         analyzedStocks: 487,
@@ -38,18 +59,17 @@ const BatchAnalysis = () => {
         averageAccuracy: 76.2,
         bestPerformer: 'NVDA',
         worstPerformer: 'META',
-        returnsDistribution: [5, 15, 25, 35, 20],
-        accuracyDistribution: [10, 20, 30, 25, 15],
-        topPerformers: [
-          { ticker: 'NVDA', return: 45.2, accuracy: 82.1 },
-          { ticker: 'TSLA', return: 32.8, accuracy: 78.5 },
-          { ticker: 'AAPL', return: 28.4, accuracy: 75.2 },
-          { ticker: 'MSFT', return: 25.1, accuracy: 73.8 },
-          { ticker: 'GOOGL', return: 22.7, accuracy: 71.4 },
+        results: [
+          { ticker: 'NVDA', total_return: 45.2, accuracy: 82.1, total_trades: 12 },
+          { ticker: 'TSLA', total_return: 32.8, accuracy: 78.5, total_trades: 10 },
+          { ticker: 'AAPL', total_return: 28.4, accuracy: 75.2, total_trades: 8 },
+          { ticker: 'MSFT', total_return: 25.1, accuracy: 73.8, total_trades: 9 },
+          { ticker: 'GOOGL', total_return: 22.7, accuracy: 71.4, total_trades: 11 },
         ],
       });
+    } finally {
       setLoading(false);
-    }, 2000);
+    }
   };
 
   return (
@@ -123,6 +143,13 @@ const BatchAnalysis = () => {
         </Grid>
       </Paper>
 
+      {/* Error Alert */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+
       {/* Results */}
       {results && (
         <Grid container spacing={3}>
@@ -134,10 +161,10 @@ const BatchAnalysis = () => {
                   Analyzed Stocks
                 </Typography>
                 <Typography variant="h4" component="div">
-                  {results.analyzedStocks}
+                  {results.analyzed_stocks || results.analyzedStocks}
                 </Typography>
                 <Typography variant="body2" color="textSecondary">
-                  of {results.totalStocks} total
+                  of {results.total_stocks || results.totalStocks} total
                 </Typography>
               </CardContent>
             </Card>
@@ -149,7 +176,7 @@ const BatchAnalysis = () => {
                   Average Return
                 </Typography>
                 <Typography variant="h4" component="div" color="primary">
-                  {results.averageReturn}%
+                  {(results.average_return || results.averageReturn)?.toFixed(1)}%
                 </Typography>
               </CardContent>
             </Card>
@@ -161,7 +188,7 @@ const BatchAnalysis = () => {
                   Average Accuracy
                 </Typography>
                 <Typography variant="h4" component="div" color="success.main">
-                  {results.averageAccuracy}%
+                  {(results.average_accuracy || results.averageAccuracy)?.toFixed(1)}%
                 </Typography>
               </CardContent>
             </Card>
@@ -173,104 +200,55 @@ const BatchAnalysis = () => {
                   Best Performer
                 </Typography>
                 <Typography variant="h4" component="div">
-                  {results.bestPerformer}
+                  {results.best_performer || results.bestPerformer}
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
 
-          {/* Returns Distribution Chart */}
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Returns Distribution
-              </Typography>
-              <Plot
-                data={[
-                  {
-                    x: ['-20% to -10%', '-10% to 0%', '0% to 10%', '10% to 20%', '20%+'],
-                    y: results.returnsDistribution,
-                    type: 'bar',
-                    marker: { color: '#2196f3' },
-                  },
-                ]}
-                layout={{
-                  title: 'Distribution of Returns',
-                  xaxis: { title: 'Return Range' },
-                  yaxis: { title: 'Number of Stocks' },
-                  height: 300,
-                }}
-                config={{ displayModeBar: false }}
-              />
-            </Paper>
-          </Grid>
-
-          {/* Accuracy vs Returns Scatter */}
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Top Performers
-              </Typography>
-              <Plot
-                data={[
-                  {
-                    x: results.topPerformers.map(p => p.accuracy),
-                    y: results.topPerformers.map(p => p.return),
-                    mode: 'markers+text',
-                    type: 'scatter',
-                    text: results.topPerformers.map(p => p.ticker),
-                    textposition: 'top center',
-                    marker: { 
-                      size: 12,
-                      color: results.topPerformers.map(p => p.return),
-                      colorscale: 'Viridis',
-                    },
-                  },
-                ]}
-                layout={{
-                  title: 'Accuracy vs Returns',
-                  xaxis: { title: 'Accuracy (%)' },
-                  yaxis: { title: 'Return (%)' },
-                  height: 300,
-                }}
-                config={{ displayModeBar: false }}
-              />
-            </Paper>
-          </Grid>
-
           {/* Top Performers Table */}
-          <Grid item xs={12}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Top 10 Performers
-              </Typography>
-              <Grid container spacing={2}>
-                {results.topPerformers.map((performer, index) => (
-                  <Grid item xs={12} sm={6} md={4} lg={2} key={index}>
-                    <Card>
-                      <CardContent sx={{ textAlign: 'center' }}>
-                        <Typography variant="h6" component="div">
-                          {performer.ticker}
-                        </Typography>
-                        <Typography variant="h5" color="primary">
-                          {performer.return}%
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          {performer.accuracy}% accuracy
-                        </Typography>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
-            </Paper>
-          </Grid>
+          {results.results && results.results.length > 0 && (
+            <Grid item xs={12}>
+              <Paper sx={{ p: 2 }}>
+                <Typography variant="h6" gutterBottom>
+                  Top Performers
+                </Typography>
+                <Grid container spacing={2}>
+                  {results.results.slice(0, 10).map((performer, index) => (
+                    <Grid item xs={12} sm={6} md={4} lg={2} key={index}>
+                      <Card>
+                        <CardContent sx={{ textAlign: 'center' }}>
+                          <Typography variant="h6" component="div">
+                            {performer.ticker}
+                          </Typography>
+                          <Typography variant="h5" color="primary">
+                            {performer.total_return?.toFixed(1)}%
+                          </Typography>
+                          <Typography variant="body2" color="textSecondary">
+                            {performer.accuracy?.toFixed(1)}% accuracy
+                          </Typography>
+                          <Typography variant="body2" color="textSecondary">
+                            {performer.total_trades} trades
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Paper>
+            </Grid>
+          )}
         </Grid>
       )}
 
       {loading && (
         <Alert severity="info" sx={{ mt: 2 }}>
           Analyzing stocks... This may take a few minutes for large datasets.
+        </Alert>
+      )}
+      {error && (
+        <Alert severity="error" sx={{ mt: 2 }}>
+          {error}
         </Alert>
       )}
     </Box>
